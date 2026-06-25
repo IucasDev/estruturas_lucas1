@@ -6,7 +6,7 @@ from PIL import Image
 # CONFIGURAÇÃO
 # ─────────────────────────────────────────────
 PDF_PATH = "DIS-NOR-013-REV-08.pdf"   # << ajuste o caminho se necessário
-DPI = 200                              # resolução da rasterização
+DPI = 150                              # resolução da rasterização
 
 # Proporção do cabeçalho a cortar (logotipo + cabeçalho da norma)
 CROP_TOP_RATIO = 0.13   # remove os primeiros 13% da altura (cabeçalho)
