@@ -8986,21 +8986,42 @@ def extrair_imagem(pdf_path: str, pagina: int, dpi: int,
     """
     Rasteriza uma página do PDF e aplica recorte vertical.
     Retorna os bytes da imagem PNG em memória.
-    Usa PyMuPDF (pymupdf) para renderização.
+    Tenta pdftoppm (se poppler-utils instalado), senão usa PyMuPDF.
     """
-    import pymupdf
+    import subprocess, tempfile, os, glob
 
+    # Tenta pdftoppm
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            prefix = os.path.join(tmpdir, "pag")
+            subprocess.run(
+                ["pdftoppm", "-jpeg", "-r", str(dpi), "-f", str(pagina), "-l", str(pagina), pdf_path, prefix],
+                check=True, capture_output=True,
+            )
+            arquivos = sorted(glob.glob(f"{prefix}-*.jpg"))
+            if arquivos:
+                img = Image.open(arquivos[0])
+                w, h = img.size
+                top    = int(h * crop_top)
+                bottom = int(h * (1.0 - crop_bottom)) if crop_bottom > 0 else h
+                img = img.crop((0, top, w, bottom))
+                buf = io.BytesIO()
+                img.save(buf, format="PNG")
+                return buf.getvalue()
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        pass
+
+    # Fallback: PyMuPDF
+    import pymupdf
     doc = pymupdf.open(pdf_path)
     page = doc[pagina - 1]
     mat = pymupdf.Matrix(dpi / 72, dpi / 72)
     pix = page.get_pixmap(matrix=mat)
     img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-
     w, h = img.size
     top    = int(h * crop_top)
     bottom = int(h * (1.0 - crop_bottom)) if crop_bottom > 0 else h
     img = img.crop((0, top, w, bottom))
-
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
